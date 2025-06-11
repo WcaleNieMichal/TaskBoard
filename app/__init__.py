@@ -1,7 +1,15 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf import CSRFProtect
-from .extensions import db, csrf, migrate
+from app.extensions import db, csrf, migrate
+
+from app.models import User
+from app.extensions import login_manager
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 
 def create_app():

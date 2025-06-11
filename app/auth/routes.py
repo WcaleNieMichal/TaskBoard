@@ -1,5 +1,8 @@
-from flask import Blueprint, render_template
-
+from flask import Blueprint, render_template, url_for
+from werkzeug.security import generate_password_hash
+from flask_login import login_user
+from app.extensions import db
+from app.models import User
 from .forms import LoginForm, RegisterForm
 
 auth = Blueprint('auth', __name__)
@@ -17,5 +20,11 @@ def login():
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        return 'Registered'
+        new_user = User(email=form.email.data,
+                        password=generate_password_hash(form.password.data))
+        db.session.add(new_user)
+        db.session.commit()
+        login_user(new_user)
+        url_for('main.home')
+
     return render_template('register.html', form=form)
