@@ -26,8 +26,10 @@ def create_app():
     # Import i rejestracja blueprintów
     from .routes import main
     from .auth.routes import auth
+    from .task_board.routes import task_board
 
     app.register_blueprint(main)
     app.register_blueprint(auth, url_prefix='/auth')
+    app.register_blueprint(task_board, url_prefix='/task_board')
 
     return app
