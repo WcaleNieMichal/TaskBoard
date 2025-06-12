@@ -10,6 +10,11 @@ class LoginForm(FlaskForm):
     password = PasswordField('Hasło', [DataRequired()])
     submit = SubmitField('Zaloguj Się')
 
+    def validate_email(self, email):
+        user = User.query.filter_by(email=email.data).first()
+        if not user:
+            raise ValidationError("Nie ma takiego użytkownika")
+
 
 class RegisterForm(FlaskForm):
     email = StringField('Email', [DataRequired(), Email()])

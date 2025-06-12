@@ -6,6 +6,8 @@ from app.extensions import db, csrf, migrate
 from app.models import User
 from app.extensions import login_manager
 
+login_manager.login_view = 'auth.login'
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -13,12 +15,13 @@ def load_user(user_id):
 
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, instance_relative_config=True)
     app.config.from_object('app.config.Config')
 
     db.init_app(app)
     csrf.init_app(app)
     migrate.init_app(app, db)
+    login_manager.init_app(app)
 
     # Import i rejestracja blueprintów
     from .routes import main
