@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
 
 <head>
     <meta charset="utf-8">
@@ -7,19 +7,16 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Task Board Trello</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- SortableJS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 
     <style>
-        /* Styl przeciąganego elementu */
         .drag-ghost {
             opacity: 0.7;
             background-color: #f8f9fa;
             border: 2px dashed #aaa;
         }
 
-        /* Styl "uchwytu" zadania */
         .list-group-item {
             user-select: none;
             cursor: grab;
@@ -34,56 +31,55 @@
 <body>
     <nav class="navbar navbar-dark bg-dark">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">TaskBoard Trello</a>
+            <a class="navbar-brand" href="{{url_for('task_board.home')}}">TaskBoard Trello</a>
         </div>
     </nav>
 
     <main class="container-fluid py-4 mt-3">
+        <!-- Formularz dodawania -->
+        <h1 class="text-center">{{board.name}}</h1>
+        <div class="d-flex justify-content-center align-items-center my-5">
+            <form action="{{ url_for('task.add_task') }}" method="POST">
+                {{ form.hidden_tag() }}
+                <div class="input-group">
+                    {{ form.title(class="form-control", placeholder="Dodaj zadanie") }}
+                    {{ form.submit(class="btn btn-success") }}
+                </div>
+            </form>
+        </div>
+
+        <!-- Kolumny -->
         <div class="row text-center">
-
-            <!-- ToDo -->
+            {% for column, title, color in [('todo', 'To Do', 'primary'), ('inprogress', 'In Progress', 'warning'),
+            ('done', 'Done', 'success')] %}
             <div class="col-md-4">
                 <div class="card">
-                    <div class="card-header bg-secondary text-white">To Do</div>
-                    <ul id="todo" class="list-group list-group-flush">
-                        {% for task in tasks %}
-                        {% if task.column == 'todo' %}
-                        <li class="list-group-item" data-id="{{ task.id }}">{{ task.description }}</li>
+                    <div class="card-header bg-{{ color }} text-dark">{{ title }}</div>
+                    <ul id="{{ column }}" class="list-group list-group-flush">
+                        {% for task in board.tasks %}
+                        {% if task.column == column %}
+                        <li class="list-group-item d-flex justify-content-between align-items-start"
+                            data-id="{{ task.id }}">
+                            <div class="text-break" style="word-break: break-word; max-width: 90%;">
+                                {{ task.description }}
+                            </div>
+
+                            {% if column == 'done' %}
+                            <form method="POST" action="{{ url_for('task.delete_task', task_id=task.id) }}"
+                                style="margin: 0;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm ms-2" title="Usuń">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </li>
                         {% endif %}
                         {% endfor %}
                     </ul>
                 </div>
             </div>
-
-            <!-- In Progress -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-warning text-dark">In Progress</div>
-                    <ul id="inprogress" class="list-group list-group-flush">
-
-                        {% for task in tasks %}
-                        {% if task.column == 'inprogress' %}
-                        <li class="list-group-item" data-id="{{ task.id }}">{{ task.description }}</li>
-                        {% endif %}
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Done -->
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-success text-white">Done</div>
-                    <ul id="done" class="list-group list-group-flush">
-                        {% for task in tasks %}
-                        {% if task.column == 'done' %}
-                        <li class="list-group-item" data-id="{{ task.id }}">{{ task.description }}</li>
-                        {% endif %}
-                        {% endfor %}
-                    </ul>
-                </div>
-            </div>
-
+            {% endfor %}
         </div>
     </main>
 
@@ -96,7 +92,6 @@
             const lists = ['todo', 'inprogress', 'done'];
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-
             lists.forEach(id => {
                 const element = document.getElementById(id);
                 Sortable.create(element, {
@@ -107,9 +102,7 @@
                         const taskId = evt.item.dataset.id;
                         const newColumn = evt.to.id;
 
-                        console.log("Przeciągnięto task:", taskId, "do kolumny:", newColumn);
-
-                        fetch('/task_board/update_task', {
+                        fetch('/task/update_task', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -120,13 +113,11 @@
                                 column: newColumn
                             })
                         })
-                            .then(response => {
-                                console.log("Status odpowiedzi:", response.status);
-                                return response.json();
-                            })
+                            .then(response => response.json())
                             .then(data => {
-                                console.log("Odpowiedź serwera:", data);
-                                if (data.status !== "success") {
+                                if (data.status === "success") {
+                                    location.reload();  // przeładuj, by zobaczyć ikonę kosza tylko w "Done"
+                                } else {
                                     alert("Błąd zapisu: " + (data.message || "nieznany"));
                                 }
                             })
@@ -134,9 +125,7 @@
                                 console.error("Błąd fetch:", err);
                                 alert("Błąd połączenia z serwerem");
                             });
-
                     }
-
                 });
             });
         });
