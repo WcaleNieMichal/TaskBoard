@@ -39,7 +39,7 @@
         <!-- Formularz dodawania -->
         <h1 class="text-center">{{board.name}}</h1>
         <div class="d-flex justify-content-center align-items-center my-5">
-            <form action="{{ url_for('task.add_task') }}" method="POST">
+            <form action="{{ url_for('task.add_task', task_board_id = board.id) }}" method="POST">
                 {{ form.hidden_tag() }}
                 <div class="input-group">
                     {{ form.title(class="form-control", placeholder="Dodaj zadanie") }}
@@ -65,7 +65,8 @@
                             </div>
 
                             {% if column == 'done' %}
-                            <form method="POST" action="{{ url_for('task.delete_task', task_id=task.id) }}"
+                            <form method="POST"
+                                action="{{ url_for('task.delete_task',task_board_id = board.id ,task_id=task.id) }}"
                                 style="margin: 0;">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-danger btn-sm ms-2" title="Usuń">
@@ -102,7 +103,7 @@
                         const taskId = evt.item.dataset.id;
                         const newColumn = evt.to.id;
 
-                        fetch('/task/update_task', {
+                        fetch(`/task_boards/{{ board.id }}/update_task`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',

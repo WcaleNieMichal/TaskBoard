@@ -32,6 +32,6 @@ def create_app():
     app.register_blueprint(main)
     app.register_blueprint(auth, url_prefix='/auth')
     app.register_blueprint(task_board, url_prefix='/task_board')
-    app.register_blueprint(task_bp, url_prefix='/task')
+    app.register_blueprint(task_bp)
 
     return app
