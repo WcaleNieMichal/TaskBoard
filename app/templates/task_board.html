@@ -39,49 +39,86 @@
         <!-- Formularz dodawania -->
         <h1 class="text-center">{{board.name}}</h1>
         <div class="d-flex justify-content-center align-items-center my-5">
-            <form action="{{ url_for('task.add_task', task_board_id = board.id) }}" method="POST">
-                {{ form.hidden_tag() }}
+            <form action="{{ url_for('task.add_task', board_id = board.id) }}" method="POST">
+                {{ task_form.hidden_tag() }}
                 <div class="input-group">
-                    {{ form.title(class="form-control", placeholder="Dodaj zadanie") }}
-                    {{ form.submit(class="btn btn-success") }}
+                    {{ task_form.title(class="form-control", placeholder="Dodaj zadanie") }}
+                    {{ task_form.submit(class="btn btn-success") }}
                 </div>
             </form>
         </div>
 
         <!-- Kolumny -->
-        <div class="row text-center">
-            {% for column, title, color in [('todo', 'To Do', 'primary'), ('inprogress', 'In Progress', 'warning'),
-            ('done', 'Done', 'success')] %}
-            <div class="col-md-4">
-                <div class="card">
-                    <div class="card-header bg-{{ color }} text-dark">{{ title }}</div>
-                    <ul id="{{ column }}" class="list-group list-group-flush">
-                        {% for task in board.tasks %}
-                        {% if task.column == column %}
-                        <li class="list-group-item d-flex justify-content-between align-items-start"
-                            data-id="{{ task.id }}">
-                            <div class="text-break" style="word-break: break-word; max-width: 90%;">
-                                {{ task.description }}
-                            </div>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card p-3 text-center">
+                    <h5 class="mb-3">Formularz dodawania rang</h5>
+                    <form method="POST" action="{{url_for('task_board.add_user_role', board_id=board.id)}}">
+                        {{ role_form.hidden_tag() }}
 
-                            {% if column == 'done' %}
-                            <form method="POST"
-                                action="{{ url_for('task.delete_task',task_board_id = board.id ,task_id=task.id) }}"
-                                style="margin: 0;">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="btn btn-danger btn-sm ms-2" title="Usuń">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                            {% endif %}
-                        </li>
-                        {% endif %}
-                        {% endfor %}
-                    </ul>
+                        <div class="mb-3">
+                            {{ role_form.email(class="form-control", placeholder='Email') }}
+                        </div>
+
+                        <div class="mb-3 text-start">
+                            <label class="form-label">{{ role_form.choice.label }}</label>
+                            {% for subfield in role_form.choice %}
+                            <div class="form-check">
+                                {{ subfield(class="form-check-input", id=subfield.id) }}
+                                <label class="form-check-label" for="{{ subfield.id }}">
+                                    {{ subfield.label.text }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="text-center">
+                            {{ role_form.submit(class="btn btn-primary") }}
+                        </div>
+                    </form>
+                </div>
+
+
+            </div>
+            <div class="col-md-9">
+                <div class="row text-center">
+                    {% for column, title, color in [('todo', 'To Do', 'primary'), ('inprogress', 'In Progress',
+                    'warning'),
+                    ('done', 'Done', 'success')] %}
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-header bg-{{ color }} text-dark">{{ title }}</div>
+                            <ul id="{{ column }}" class="list-group list-group-flush">
+                                {% for task in board.tasks %}
+                                {% if task.column == column %}
+                                <li class="list-group-item d-flex justify-content-between align-items-start"
+                                    data-id="{{ task.id }}">
+                                    <div class="text-break" style="word-break: break-word; max-width: 90%;">
+                                        {{ task.description }}
+                                    </div>
+
+                                    {% if column == 'done' %}
+                                    <form method="POST"
+                                        action="{{ url_for('task.delete_task', board_id = board.id ,task_id=task.id) }}"
+                                        style="margin: 0;">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button type="submit" class="btn btn-danger btn-sm ms-2" title="Usuń">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </li>
+                                {% endif %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-            {% endfor %}
         </div>
+
+
     </main>
 
     <!-- Bootstrap JS -->
@@ -105,6 +142,7 @@
 
                         fetch(`/task_boards/{{ board.id }}/update_task`, {
                             method: 'POST',
+                            credentials: "include",
                             headers: {
                                 'Content-Type': 'application/json',
                                 'X-CSRFToken': csrfToken
@@ -117,7 +155,7 @@
                             .then(response => response.json())
                             .then(data => {
                                 if (data.status === "success") {
-                                    location.reload();  // przeładuj, by zobaczyć ikonę kosza tylko w "Done"
+                                    location.reload()
                                 } else {
                                     alert("Błąd zapisu: " + (data.message || "nieznany"));
                                 }

@@ -1,9 +1,10 @@
-from flask import Blueprint, jsonify, redirect, render_template, request, url_for
+from flask import Blueprint, abort, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
 from app.decorators import role_required
-from app.models import TaskBoard
+from app.models import TaskBoard, User, TaskBoardPermission
 from app.extensions import db
 from app.task.forms import NewTaskForm
+from .forms import AddUserRoles
 
 task_board = Blueprint('task_board', __name__)
 
@@ -14,15 +15,47 @@ def require_login():
         return redirect(url_for('auth.login'))
 
 
-@role_required('moderator', 'viewer')
 @task_board.route('/view_board/<int:board_id>')
+@role_required('moderator', 'viewer')
 def show_board(board_id):
-    form = NewTaskForm()
+    new_task_form = NewTaskForm()
+    user_role_form = AddUserRoles()
     board = TaskBoard.query.filter_by(
-        id=board_id, owner_id=current_user.id).first()
+        id=board_id).first()
     if board:
-        return render_template('task_board.html', form=form, board=board)
+        return render_template('task_board.html', task_form=new_task_form, role_form=user_role_form, board=board)
     return redirect(url_for('task_board.home'))
+
+
+@task_board.route('/view_board/<int:board_id>/add_role', methods=["POST"])
+@role_required()
+def add_user_role(board_id):
+    form = AddUserRoles()
+    if form.validate_on_submit():
+
+        board = TaskBoard.query.filter_by(id=board_id).first()
+        user = User.query.filter_by(email=form.email.data).first()
+
+        if not board or not user:
+            abort(404)
+        if user.id == current_user.id:
+            return redirect(url_for('task_board.show_board', board_id=board_id))
+
+        perm = TaskBoardPermission.query.filter_by(
+            user_id=user.id,
+            task_board_id=board.id,
+            role=form.choice.data,
+        ).first()
+        if perm:
+            abort(404)
+        new_permision = TaskBoardPermission(
+            user_id=user.id,
+            task_board_id=board.id,
+            role=form.choice.data,
+        )
+        db.session.add(new_permision)
+        db.session.commit()
+        return redirect(url_for('task_board.show_board', board_id=board_id))
 
 
 @task_board.route('/')
@@ -52,8 +85,8 @@ def add_task_board():
     return jsonify({'message': 'Dodano tablicę', 'name': table_name, 'id': new_board.id})
 
 
-@role_required('moderator')
 @task_board.route('/delete/<int:board_id>', methods=['DELETE'])
+@role_required('moderator')
 def delete_board(board_id):
     board = TaskBoard.query.filter_by(
         id=board_id, owner_id=current_user.id).first()
