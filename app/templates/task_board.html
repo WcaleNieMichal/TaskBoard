@@ -39,6 +39,7 @@
         <!-- Formularz dodawania -->
         <h1 class="text-center">{{board.name}}</h1>
         <div class="d-flex justify-content-center align-items-center my-5">
+            {%if user_role == 'moderator' or user_role == none%}
             <form action="{{ url_for('task.add_task', board_id = board.id) }}" method="POST">
                 {{ task_form.hidden_tag() }}
                 <div class="input-group">
@@ -46,12 +47,15 @@
                     {{ task_form.submit(class="btn btn-success") }}
                 </div>
             </form>
+            {%endif%}
+
         </div>
 
         <!-- Kolumny -->
         <div class="row">
             <div class="col-md-3">
                 <div class="card p-3 text-center">
+                    {% if current_user.id == board.owner_id%}
                     <h5 class="mb-3">Formularz dodawania rang</h5>
                     <form method="POST" action="{{url_for('task_board.add_user_role', board_id=board.id)}}">
                         {{ role_form.hidden_tag() }}
@@ -73,9 +77,34 @@
                         </div>
 
                         <div class="text-center">
-                            {{ role_form.submit(class="btn btn-primary") }}
+                            {{ role_form.submit(class="btn btn-primary w-100 mb-3") }}
                         </div>
                     </form>
+                    {%endif%}
+
+                    {% for role in [('moderator', 'Moderator'), ('viewer', 'Gość')] %}
+                    <h5 class="mb-3">{{ role[1] }}</h5>
+                    {% for permission in task_board_permissions %}
+                    {% if permission.role == role[0] %}
+                    {% set color = '' %} <!-- Domyślny kolor -->
+
+                    <!-- Jeśli użytkownik jest moderatorem lub właścicielem tablicy, ustawiamy kolor na czerwony dla wszystkich -->
+                    <ul>
+                        {%if user_role == 'moderator' or user_role == none%}
+                        <li class="mb-2 text-start" style="color: red;">
+                            {{ permission.user.email }}
+                        </li>
+                        {% else %}
+                        <li class="mb-2 text-start">
+                            {{ permission.user.email }}
+                        </li>
+                        {% endif %}
+                    </ul>
+                    {% endif %}
+                    {% endfor %}
+                    {% endfor %}
+
+
                 </div>
 
 
@@ -129,6 +158,7 @@
         document.addEventListener('DOMContentLoaded', function () {
             const lists = ['todo', 'inprogress', 'done'];
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            let error = null;
 
             lists.forEach(id => {
                 const element = document.getElementById(id);
@@ -139,35 +169,43 @@
                     onEnd: function (evt) {
                         const taskId = evt.item.dataset.id;
                         const newColumn = evt.to.id;
-
-                        fetch(`/task_boards/{{ board.id }}/update_task`, {
-                            method: 'POST',
-                            credentials: "include",
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': csrfToken
-                            },
-                            body: JSON.stringify({
-                                id: taskId,
-                                column: newColumn
+                        if (error !== 'Brak uprawnien') {
+                            fetch(`/task_boards/{{ board.id }}/update_task`, {
+                                method: 'POST',
+                                credentials: "include",
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRFToken': csrfToken
+                                },
+                                body: JSON.stringify({
+                                    id: taskId,
+                                    column: newColumn
+                                })
                             })
-                        })
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.status === "success") {
-                                    location.reload()
-                                } else {
-                                    alert("Błąd zapisu: " + (data.message || "nieznany"));
-                                }
-                            })
-                            .catch(err => {
-                                console.error("Błąd fetch:", err);
-                                alert("Błąd połączenia z serwerem");
-                            });
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.status === "success") {
+                                        location.reload()
+                                    } else {
+                                        console.log(data)
+                                        if (data.error == 'Brak uprawnien') {
+                                            if (error === null) {
+                                                alert("Nie masz uprawnien, ale możesz edytować lokalnie")
+                                                error = data.error
+                                            }
+                                        }
+                                    }
+                                })
+                                .catch(err => {
+                                    console.error("Błąd fetch:", err);
+                                    alert("Błąd połączenia z serwerem");
+                                });
+                        }
                     }
                 });
             });
         });
+
     </script>
 </body>
 

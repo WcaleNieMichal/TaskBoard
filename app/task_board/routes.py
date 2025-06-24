@@ -22,8 +22,16 @@ def show_board(board_id):
     user_role_form = AddUserRoles()
     board = TaskBoard.query.filter_by(
         id=board_id).first()
+    task_board_permissions = TaskBoardPermission.query.filter_by(
+        task_board_id=board_id).all()
+    user_role = TaskBoardPermission.query.filter_by(
+        task_board_id=board_id,
+        user_id=current_user.id).first()
+    if user_role:
+        user_role = user_role.role
+
     if board:
-        return render_template('task_board.html', task_form=new_task_form, role_form=user_role_form, board=board)
+        return render_template('task_board.html', user_role=user_role, current_user=current_user, task_form=new_task_form, role_form=user_role_form, board=board, task_board_permissions=task_board_permissions)
     return redirect(url_for('task_board.home'))
 
 
@@ -60,8 +68,10 @@ def add_user_role(board_id):
 
 @task_board.route('/')
 def home():
-    boards = TaskBoard.query.filter_by(owner_id=current_user.id)
-    return render_template('dash_board.html', boards=boards)
+    boards = TaskBoard.query.filter_by(owner_id=current_user.id).all()
+    shared_boards = [x.task_board for x in TaskBoardPermission.query.filter_by(
+        user_id=current_user.id).all()]
+    return render_template('dash_board.html', shared_boards=shared_boards, boards=boards, user_email=current_user.email)
 
 
 @task_board.route('/add_task_board', methods=['POST'])

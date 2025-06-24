@@ -1,6 +1,6 @@
 from functools import wraps
 
-from flask import abort
+from flask import abort, jsonify, request
 from flask_login import current_user
 
 from .models import TaskBoard
@@ -13,7 +13,6 @@ def role_required(*roles):
             task_board_id = kwargs.get("board_id")
             board = TaskBoard.query.get(task_board_id)
             if not board:
-                raise ValueError("ten", board)
                 return abort(404)
 
             if board.owner_id == current_user.id:
@@ -25,6 +24,8 @@ def role_required(*roles):
             for perm in current_user.permissions:
                 if perm.task_board_id == task_board_id and perm.role in roles:
                     return f(*args, **kwargs)
+            if request.headers.get("Content-Type") == "application/json":
+                return jsonify({'error': 'Brak uprawnien'}), 403
             return abort(403)
         return decorated_function
     return decorator

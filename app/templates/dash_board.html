@@ -28,47 +28,72 @@
             <main class="col-md-9 py-4 mt-3">
                 <!-- Tu Twoja aplikacja -->
                 <h1>Panel główny</h1>
-                <p>Witaj w aplikacji TaskBoard!</p>
+                <p>Witaj <b>{{user_email}}</b> w aplikacji TaskBoard!</p>
             </main>
 
             <!-- Panel boczny po prawej stronie -->
-            <aside class="col-md-3 bg-light border-start sidebar d-flex flex-column p-3">
-                <h5 class="text-center mb-4">Tabele</h5>
+            <aside class="col-md-3">
+                <div class="bg-light rounded border  sidebar d-flex flex-column p-3">
+                    <h5 class="text-center mb-4">Tabele</h5>
 
-                <!-- Lista istniejących tabel -->
-                <ul id="taskBoardList" class="list-group">
-                    {% if boards %}
-                    {% for board in boards %}
-                    <li class="list-group-item d-flex justify-content-between align-items-center"
-                        data-id="{{ board.id }}">
-                        <a href="{{ url_for('task_board.show_board', board_id=board.id) }}"
-                            class="text-decoration-none text-dark d-block">
-                            {{ board.name }}
-                        </a>
-                        <button onclick="deleteBoard({{ board.id }})" class="btn btn-sm btn-danger">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </li>
-                    {% endfor %}
-                    {% endif %}
-                </ul>
+                    <!-- Lista istniejących tabel -->
+                    <ul id="taskBoardList" class="list-group">
+                        {% if boards %}
+                        {% for board in boards %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center"
+                            data-id="{{ board.id }}">
+                            <a href="{{ url_for('task_board.show_board', board_id=board.id) }}"
+                                class="text-decoration-none text-dark d-block">
+                                {{ board.name }}
+                            </a>
+                            <button onclick="deleteBoard({{ board.id }})" class="btn btn-sm btn-danger">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </li>
+                        {% endfor %}
+                        {% endif %}
+                    </ul>
 
-                <!-- Stały messageBox, zawsze obecny -->
-                <div id="message" class="text-center my-3 text-danger">
-                    {% if not boards %}
-                    Brak Tabel
-                    {% endif %}
+                    <!-- Stały messageBox, zawsze obecny -->
+                    <div id="message" class="text-center my-3 text-danger">
+                        {% if not boards %}
+                        Brak Tabel
+                        {% endif %}
+                    </div>
+
+                    <!-- Input + przycisk -->
+                    <div class="mb-3">
+                        <label for="tableName" class="form-label">Nazwa nowej tabeli</label>
+                        <input type="text" id="tableName" class="form-control" placeholder="Wpisz nazwę">
+                    </div>
+
+                    <button class="btn btn-primary mt-auto" onclick="createTable()">
+                        <i class="bi bi-plus-lg"></i> Dodaj tabelę
+                    </button>
+                </div>
+                <div class="bg-light rounded border  sidebar d-flex flex-column p-3 mt-3">
+                    <h5 class="text-center mt-1">Tabele udostepnione dla ciebie</h5>
+                    <ul id="taskBoardList" class="list-group">
+                        {% if shared_boards %}
+                        {% for board in shared_boards %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center mt-2">
+                            <a href="{{ url_for('task_board.show_board', board_id=board.id) }}"
+                                class="text-decoration-none text-dark d-block">
+                                {{ board.name }}
+                            </a>
+                        </li>
+                        {% endfor %}
+                        {% endif %}
+                    </ul>
+
+                    <!-- Stały messageBox, zawsze obecny -->
+                    <div class="text-center my-3 text-danger">
+                        {% if not shared_boards %}
+                        Brak Tabel
+                        {% endif %}
+                    </div>
                 </div>
 
-                <!-- Input + przycisk -->
-                <div class="mb-3">
-                    <label for="tableName" class="form-label">Nazwa nowej tabeli</label>
-                    <input type="text" id="tableName" class="form-control" placeholder="Wpisz nazwę">
-                </div>
-
-                <button class="btn btn-primary mt-auto" onclick="createTable()">
-                    <i class="bi bi-plus-lg"></i> Dodaj tabelę
-                </button>
             </aside>
 
         </div>
