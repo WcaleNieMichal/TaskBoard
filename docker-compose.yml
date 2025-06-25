@@ -3,9 +3,18 @@ version: '3.8'
 services:
   web:
     build: .
+    container_name: flask_app
     ports:
       - "5000:5000"
     volumes:
-      - .:/app
+      - .:/app # Montuje folder aplikacji na hosta, aby zmiany w plikach były widoczne
     environment:
-      - FLASK_ENV=development
+      - FLASK_ENV=production # Ustawienie środowiska na produkcję
+      - FLASK_APP=main.py # Ustawienie głównego pliku aplikacji
+      - SECRET_KEY=${SECRET_KEY} # Zmienna środowiskowa dla tajnego klucza
+    command: gunicorn -b 0.0.0.0:5000 main:app # Uruchomienie aplikacji za pomocą Gunicorn
+
+volumes:
+  sqlite_data:
+    # Volume dla SQLite
+    driver: local
