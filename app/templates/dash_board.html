@@ -16,10 +16,12 @@
 </head>
 
 <body>
-    <nav class="navbar navbar-dark bg-dark">
-        <div class="container-fluid">
+    <nav class="navbar navbar-dark bg-dark ">
+        <div class="container-fluid d-flex justify-content-between">
             <a class="navbar-brand" href="#">TaskBoard Trello</a>
+            <a class="text-white" href="{{url_for('auth.logout')}}">Wyloguj</a>
         </div>
+
     </nav>
 
     <div class="container-fluid">

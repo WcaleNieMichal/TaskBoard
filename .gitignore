@@ -10,3 +10,5 @@ instance/
 *.sqlite3
 *.db
 .env
+docker-compose.yml
+Dockerfile

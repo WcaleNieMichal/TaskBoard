@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, redirect, url_for
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user
+from flask_login import login_required, login_user, logout_user
 from app.extensions import db
 from app.models import User
 from .forms import LoginForm, RegisterForm
@@ -32,3 +32,10 @@ def register():
         return redirect(url_for('main.home'))
 
     return render_template('register.html', form=form)
+
+
+@auth.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('auth.login'))
