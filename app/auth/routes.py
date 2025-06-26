@@ -13,10 +13,10 @@ def login():
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
-        if check_password_hash(user.password, form.password.data):
+        if user and check_password_hash(user.password, form.password.data):
             login_user(user)
             return redirect(url_for('main.home'))
-        form.password.errors.append("Błędne hasło")
+        form.password.errors.append("Nieprawidłowy email lub hasło")
     return render_template('login.html', form=form)
 
 
@@ -24,12 +24,15 @@ def login():
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
-        new_user = User(email=form.email.data,
-                        password=generate_password_hash(form.password.data))
-        db.session.add(new_user)
-        db.session.commit()
-        login_user(new_user)
-        return redirect(url_for('main.home'))
+        user = User.query.filter_by(email=form.email.data).first()
+        if not user:
+            new_user = User(email=form.email.data,
+                            password=generate_password_hash(form.password.data))
+            db.session.add(new_user)
+            db.session.commit()
+            login_user(new_user)
+            return redirect(url_for('main.home'))
+        form.email.errors.append("Email jest już zarejestrowany")
 
     return render_template('register.html', form=form)
 

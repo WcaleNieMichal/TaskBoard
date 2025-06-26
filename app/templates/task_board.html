@@ -93,7 +93,7 @@
                     <!-- Jeśli użytkownik jest moderatorem lub właścicielem tablicy, ustawiamy kolor na czerwony dla wszystkich -->
                     <ul>
                         {%if user_role == 'moderator' or user_role == none%}
-                        <li class="mb-2 text-start" style="color: red;">
+                        <li class="mb-2 text-start" style="text-decoration: underline; color: red;">
                             {{ permission.user.email }}
                         </li>
                         {% else %}
