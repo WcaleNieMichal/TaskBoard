@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: taskboard_dev
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app # Live code reloading
+      - sqlite_data:/app/instance # Persistent SQLite database
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=main.py
+      # Jeśli SECRET_KEY nie jest ustawiony lokalnie, użyj wartości domyślnej
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+    command: flask run --host=0.0.0.0 --port=5000 --reload
+
+volumes:
+  sqlite_data:

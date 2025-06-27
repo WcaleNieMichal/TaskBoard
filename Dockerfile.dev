@@ -1,0 +1,24 @@
+# Dockerfile.dev – obraz deweloperski z autoreload
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Instalacja zależności
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt \
+    # Dodatkowe narzędzia developerskie (watchdog do reloadu plików)
+    && pip install --no-cache-dir watchdog
+
+# Kopiujemy resztę kodu źródłowego do obrazu
+COPY . .
+
+# Zmienne środowiskowe dla Flaska
+ENV FLASK_APP=main.py
+ENV FLASK_ENV=development
+ENV PYTHONUNBUFFERED=1
+
+EXPOSE 5000
+
+# Uruchamiamy aplikację w trybie developerskim z autoreloadem
+CMD ["flask", "run", "--host=0.0.0.0", "--port=5000", "--reload"] 

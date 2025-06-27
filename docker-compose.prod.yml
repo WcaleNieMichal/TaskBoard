@@ -1,0 +1,30 @@
+version: "3.8"
+
+services:
+  web:
+    # Buduje obraz na podstawie standardowego Dockerfile (prod)
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskboard_prod
+    restart: always
+    # Wystaw publicznie port 5000 (lub pozostaw tylko wewnętrznie, jeśli Nginx proxy działa lokalnie)
+    ports:
+      - "5000:5000"
+    volumes:
+      # Tylko wolumen z bazą – brak bind-mount kodu
+      - sqlite_data:/app/instance
+    environment:
+      - FLASK_ENV=production
+      - FLASK_APP=main.py
+      - SECRET_KEY=${SECRET_KEY}
+    command: gunicorn -b 0.0.0.0:5000 main:app
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+volumes:
+  sqlite_data:
