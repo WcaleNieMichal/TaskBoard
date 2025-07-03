@@ -5,6 +5,9 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="user-role" content="{{ user_role or 'none' }}">
+    <meta name="board-owner" content="{{ current_user.id == board.owner_id }}">
+    <meta name="board-id" content="{{ board.id }}">
     <title>Task Board Trello</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -25,10 +28,93 @@
         .list-group-item:active {
             cursor: grabbing;
         }
+
+        .clickable-email {
+            cursor: pointer;
+            text-decoration: underline;
+            color: #dc3545;
+            /* Bootstrap danger color - czerwony */
+        }
+
+        .clickable-email:hover {
+            color: #b02a37;
+            /* Ciemniejszy czerwony przy hover */
+        }
+
+        .non-removable-email {
+            color: #6c757d;
+            /* Bootstrap secondary color - szary */
+            cursor: default;
+        }
+
+        .task-trash-icon {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .list-group-item:hover .task-trash-icon {
+            opacity: 1;
+        }
+
+        .task-trash-icon.visible {
+            opacity: 1;
+        }
+
+        .task-content {
+            flex-grow: 1;
+            word-break: break-word;
+            max-width: 90%;
+        }
+
+        .task-actions {
+            display: flex;
+            align-items: center;
+            margin-left: 8px;
+        }
     </style>
 </head>
 
 <body>
+    <!-- Modal potwierdzenia usunięcia -->
+    <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteModalLabel">Potwierdź usunięcie</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Czy na pewno chcesz usunąć uprawnienia dla użytkownika <span id="userEmailSpan"></span>?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Usuń</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal potwierdzenia usunięcia zadania -->
+    <div class="modal fade" id="confirmDeleteTaskModal" tabindex="-1" aria-labelledby="confirmDeleteTaskModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="confirmDeleteTaskModalLabel">Potwierdź usunięcie zadania</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Czy na pewno chcesz usunąć to zadanie?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteTaskBtn">Usuń</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <nav class="navbar navbar-dark bg-dark ">
         <div class="container-fluid d-flex justify-content-between">
             <a class="navbar-brand" href="#">TaskBoard Trello</a>
@@ -59,7 +145,7 @@
                 <div class="card p-3 text-center">
                     {% if current_user.id == board.owner_id%}
                     <h5 class="mb-3">Formularz dodawania rang</h5>
-                    <form method="POST" action="{{url_for('task_board.add_user_role', board_id=board.id)}}">
+                    <form method="POST" action="{{url_for('role.add_user_role', board_id=board.id)}}">
                         {{ role_form.hidden_tag() }}
 
                         <div class="mb-3">
@@ -88,19 +174,28 @@
                     <h5 class="mb-3">{{ role[1] }}</h5>
                     {% for permission in task_board_permissions %}
                     {% if permission.role == role[0] %}
-                    {% set color = '' %} <!-- Domyślny kolor -->
-
-                    <!-- Jeśli użytkownik jest moderatorem lub właścicielem tablicy, ustawiamy kolor na czerwony dla wszystkich -->
                     <ul>
-                        {%if user_role == 'moderator' or user_role == none%}
-                        <li class="mb-2 text-start" style="text-decoration: underline; color: red;">
-                            {{ permission.user.email }}
-                        </li>
-                        {% else %}
-                        <li class="mb-2 text-start">
-                            {{ permission.user.email }}
-                        </li>
+                        {% set can_remove = false %}
+
+                        {# Logika sprawdzania czy można usunąć użytkownika #}
+                        {% if current_user.id == board.owner_id and permission.user_id != current_user.id %}
+                        {% set can_remove = true %}
+                        {% elif user_role == 'moderator' and permission.role == 'viewer' %}
+                        {% set can_remove = true %}
                         {% endif %}
+
+                        <li class="mb-2 text-start">
+                            {% if can_remove %}
+                            <span class="clickable-email" data-user-id="{{ permission.user_id }}"
+                                data-user-email="{{ permission.user.email }}">
+                                {{ permission.user.email }}
+                            </span>
+                            {% else %}
+                            <span class="non-removable-email">
+                                {{ permission.user.email }}
+                            </span>
+                            {% endif %}
+                        </li>
                     </ul>
                     {% endif %}
                     {% endfor %}
@@ -124,20 +219,12 @@
                                 {% if task.column == column %}
                                 <li class="list-group-item d-flex justify-content-between align-items-start"
                                     data-id="{{ task.id }}">
-                                    <div class="text-break" style="word-break: break-word; max-width: 90%;">
+                                    <div class="task-content text-break">
                                         {{ task.description }}
                                     </div>
-
-                                    {% if column == 'done' %}
-                                    <form method="POST"
-                                        action="{{ url_for('task.delete_task', board_id = board.id ,task_id=task.id) }}"
-                                        style="margin: 0;">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-danger btn-sm ms-2" title="Usuń">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
-                                    {% endif %}
+                                    <div class="task-actions">
+                                        <!-- Trash icon will be dynamically added here -->
+                                    </div>
                                 </li>
                                 {% endif %}
                                 {% endfor %}
@@ -155,60 +242,8 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
 
-    <!-- SortableJS init -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const lists = ['todo', 'inprogress', 'done'];
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            let error = null;
-
-            lists.forEach(id => {
-                const element = document.getElementById(id);
-                Sortable.create(element, {
-                    group: { name: 'tasks', pull: true, put: true },
-                    animation: 150,
-                    ghostClass: 'drag-ghost',
-                    onEnd: function (evt) {
-                        const taskId = evt.item.dataset.id;
-                        const newColumn = evt.to.id;
-                        if (error !== 'Brak uprawnien') {
-                            fetch(`/task_boards/{{ board.id }}/update_task`, {
-                                method: 'POST',
-                                credentials: "include",
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'X-CSRFToken': csrfToken
-                                },
-                                body: JSON.stringify({
-                                    id: taskId,
-                                    column: newColumn
-                                })
-                            })
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.status === "success") {
-                                        location.reload()
-                                    } else {
-                                        console.log(data)
-                                        if (data.error == 'Brak uprawnien') {
-                                            if (error === null) {
-                                                alert("Nie masz uprawnien, ale możesz edytować lokalnie")
-                                                error = data.error
-                                            }
-                                        }
-                                    }
-                                })
-                                .catch(err => {
-                                    console.error("Błąd fetch:", err);
-                                    alert("Błąd połączenia z serwerem");
-                                });
-                        }
-                    }
-                });
-            });
-        });
-
-    </script>
+    <!-- TaskBoard Dynamic JS -->
+    <script src="{{ url_for('static', filename='task_board/js/task_board_dynamic.js') }}"></script>
 </body>
 
 </html>

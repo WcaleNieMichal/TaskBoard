@@ -10,6 +10,18 @@ auth = Blueprint('auth', __name__)
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
+    """Obsługuje proces logowania użytkownika.
+
+    Renderuje formularz logowania i przetwarza dane przesłane przez użytkownika.
+    W przypadku poprawnych danych, loguje użytkownika i przekierowuje do strony głównej.
+
+    Returns:
+        flask.Response: Wyrenderowany szablon formularza logowania lub przekierowanie
+            do strony głównej po udanym logowaniu.
+
+    Note:
+        Jeśli dane logowania są nieprawidłowe, dodaje komunikat o błędzie do formularza.
+    """
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -22,6 +34,18 @@ def login():
 
 @auth.route('/register', methods=['GET', 'POST'])
 def register():
+    """Obsługuje proces rejestracji nowego użytkownika.
+
+    Renderuje formularz rejestracji i przetwarza przesłane dane.
+    Tworzy nowe konto użytkownika jeśli email nie jest zajęty.
+
+    Returns:
+        flask.Response: Wyrenderowany szablon formularza rejestracji lub przekierowanie
+            do strony głównej po udanej rejestracji.
+
+    Note:
+        Jeśli email jest już zajęty, dodaje komunikat o błędzie do formularza.
+    """
     form = RegisterForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -40,5 +64,12 @@ def register():
 @auth.route('/logout')
 @login_required
 def logout():
+    """Wylogowuje aktualnie zalogowanego użytkownika.
+
+    Wymaga zalogowanego użytkownika (dekorator login_required).
+
+    Returns:
+        flask.Response: Przekierowanie do strony logowania.
+    """
     logout_user()
     return redirect(url_for('auth.login'))

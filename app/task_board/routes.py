@@ -4,13 +4,18 @@ from app.decorators import role_required
 from app.models import TaskBoard, User, TaskBoardPermission
 from app.extensions import db
 from app.task.forms import NewTaskForm
-from .forms import AddUserRoles
+from app.role.forms import AddUserRoles
 
 task_board = Blueprint('task_board', __name__)
 
 
 @task_board.before_request
 def require_login():
+    """Sprawdza, czy użytkownik jest zalogowany przed każdym żądaniem.
+
+    Returns:
+        flask.Response: Przekierowanie do strony logowania jeśli użytkownik nie jest zalogowany.
+    """
     if not current_user.is_authenticated:
         return redirect(url_for('auth.login'))
 
@@ -18,6 +23,18 @@ def require_login():
 @task_board.route('/view_board/<int:board_id>')
 @role_required('moderator', 'viewer')
 def show_board(board_id):
+    """Wyświetla szczegóły tablicy zadań.
+
+    Wymaga roli moderatora lub widza. Renderuje widok tablicy z zadaniami
+    i formularzami do zarządzania.
+
+    Args:
+        board_id (int): Identyfikator tablicy zadań.
+
+    Returns:
+        flask.Response: Wyrenderowany szablon tablicy zadań lub przekierowanie
+            do dashboard'u jeśli tablica nie istnieje.
+    """
     new_task_form = NewTaskForm()
     user_role_form = AddUserRoles()
     board = TaskBoard.query.filter_by(
@@ -35,39 +52,16 @@ def show_board(board_id):
     return redirect(url_for('task_board.home'))
 
 
-@task_board.route('/view_board/<int:board_id>/add_role', methods=["POST"])
-@role_required()
-def add_user_role(board_id):
-    form = AddUserRoles()
-    if form.validate_on_submit():
-
-        board = TaskBoard.query.filter_by(id=board_id).first()
-        user = User.query.filter_by(email=form.email.data).first()
-
-        if not board or not user:
-            abort(404)
-        if user.id == current_user.id:
-            return redirect(url_for('task_board.show_board', board_id=board_id))
-
-        perm = TaskBoardPermission.query.filter_by(
-            user_id=user.id,
-            task_board_id=board.id,
-            role=form.choice.data,
-        ).first()
-        if perm:
-            abort(404)
-        new_permision = TaskBoardPermission(
-            user_id=user.id,
-            task_board_id=board.id,
-            role=form.choice.data,
-        )
-        db.session.add(new_permision)
-        db.session.commit()
-        return redirect(url_for('task_board.show_board', board_id=board_id))
-
-
 @task_board.route('/')
 def home():
+    """Wyświetla dashboard z tablicami zadań użytkownika.
+
+    Pobiera tablice zadań należące do użytkownika oraz te, do których
+    ma udostępnione uprawnienia.
+
+    Returns:
+        flask.Response: Wyrenderowany szablon dashboard'u z listą tablic zadań.
+    """
     boards = TaskBoard.query.filter_by(owner_id=current_user.id).all()
     shared_boards = [x.task_board for x in TaskBoardPermission.query.filter_by(
         user_id=current_user.id).all()]
@@ -76,6 +70,16 @@ def home():
 
 @task_board.route('/add_task_board', methods=['POST'])
 def add_task_board():
+    """Tworzy nową tablicę zadań.
+
+    Przetwarza żądanie JSON z nazwą nowej tablicy.
+
+    Returns:
+        flask.Response: Odpowiedź JSON z informacją o sukcesie lub błędzie.
+
+    Note:
+        Nazwa tablicy musi być unikalna dla danego użytkownika.
+    """
     data = request.get_json()
     table_name = data.get('tableName', '').strip()
 
@@ -98,6 +102,19 @@ def add_task_board():
 @task_board.route('/delete/<int:board_id>', methods=['DELETE'])
 @role_required('moderator')
 def delete_board(board_id):
+    """Usuwa tablicę zadań.
+
+    Wymaga roli moderatora. Tablica może być usunięta tylko przez jej właściciela.
+
+    Args:
+        board_id (int): Identyfikator tablicy zadań do usunięcia.
+
+    Returns:
+        flask.Response: Odpowiedź JSON z potwierdzeniem usunięcia lub błędem.
+
+    Raises:
+        404: Tablica nie istnieje lub użytkownik nie jest jej właścicielem.
+    """
     board = TaskBoard.query.filter_by(
         id=board_id, owner_id=current_user.id).first()
     if not board:

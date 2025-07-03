@@ -7,6 +7,23 @@ from .models import TaskBoard
 
 
 def role_required(*roles):
+    """Dekorator sprawdzający uprawnienia użytkownika do tablicy zadań.
+
+    Sprawdza, czy zalogowany użytkownik ma wymagane role dla danej tablicy zadań.
+    Właściciel tablicy ma zawsze pełne uprawnienia.
+
+    Args:
+        *roles: Zmienna liczba argumentów określających wymagane role.
+               Możliwe wartości to 'moderator' i 'viewer'.
+
+    Returns:
+        function: Udekorowana funkcja, która zostanie wykonana tylko jeśli
+                 użytkownik ma odpowiednie uprawnienia.
+
+    Raises:
+        HTTPException: 403 - brak uprawnień
+                      404 - tablica nie istnieje
+    """
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
