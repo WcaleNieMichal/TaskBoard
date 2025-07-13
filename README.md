@@ -11,16 +11,18 @@ TaskBoard to aplikacja webowa inspirowana Trello, napisana w Flask, która umoż
 
 ## 📋 Spis treści
 
-- [Funkcjonalności](#-funkcjonalności)
-- [Technologie](#-technologie)
-- [Wymagania](#-wymagania)
-- [Instalacja](#-instalacja)
-- [Uruchomienie](#-uruchomienie)
-- [Użycie Docker](#-użycie-docker)
-- [Struktura projektu](#-struktura-projektu)
-- [Modele danych](#-modele-danych)
-- [System uprawnień](#-system-uprawnień)
-- [API Endpoints](#-api-endpoints)
+- [📋 Spis treści](#-spis-treści)
+- [✨ Funkcjonalności](#-funkcjonalności)
+- [🚀 Technologie](#-technologie)
+- [📋 Wymagania](#-wymagania)
+- [🔧 Instalacja](#-instalacja)
+- [▶️ Uruchomienie](#-uruchomienie)
+- [🐳 Użycie Docker](#-użycie-docker)
+- [📁 Struktura projektu](#-struktura-projektu)
+- [🗄️ Modele danych](#%EF%B8%8F-modele-danych)
+- [🔐 System uprawnień](#-system-uprawnień)
+- [🌐 API Endpoints](#-api-endpoints)
+
 
 ## ✨ Funkcjonalności
 
